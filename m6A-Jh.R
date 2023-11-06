@@ -1,4 +1,4 @@
-setwd("/Users/Julian/Desktop/r")
+setwd("")
 library(data.table)
 library(ggplot2)
 library(ggpubr)
@@ -14,15 +14,13 @@ silk_gene <- fread("silkgene.csv")
 silk_gene$id <- silk_gene$id %>% as.character()
 
 
-#################差异基因筛选#######
-silkdeg <- fread("/Users/Julian/Documents/科研/转录组相关/jh_20e_treated_data_fpkm.csv") %>%
+#################DEG#######
+silkdeg <- fread("jh_20e_treated_data_fpkm.csv") %>%
   .[Gene_ID %in% silk_gene$id,c(1,17:19,38:40)] %>%
   .[,Gene_ID := as.character(Gene_ID)] %>%
   silk_gene[., on = .(id = Gene_ID)] %>% 
   setorder(group)
 
-
-silkdeg
 pheatmap(log2(deg[1,5:10]+1),cluster_rows = FALSE,
          cluster_cols = FALSE,labels_row = deg$name,
          show_colnames = FALSE,cellheight = 10,cellwidth = 13,
@@ -31,7 +29,6 @@ pheatmap(log2(deg[1,5:10]+1),cluster_rows = FALSE,
          cluster_cols = FALSE,labels_row = deg$name,
          show_colnames = FALSE,cellheight = 10,cellwidth = 13,
          gaps_col = 3)
-
 
 hub <- AnnotationHub()
 orgdb <- hub[["AH102039"]]
@@ -62,13 +59,14 @@ ggplot(kegg_dot,aes(y = Description, x = GeneRatio))+
         axis.title.y = element_blank())+
   theme_bw()
   
-###########JH信号通路分析#########
+###########JH signaling pathway analysis #########
 
 fread("C1_IPVSC1_input_peak.csv") %>% .[geneID %in% fread("jh通路基因.txt")[,id] & log2FoldChange > 2 & pvalue < 0.05,c(1:15)] %>% 
   write.csv(.,file = "JH_signaling_pathway_with_m6A.csv",row.names = FALSE)
 
 fread("m3_rnai.csv")%>% .[Gene_ID %in% fread("jh通路基因.txt")[,id] &`Qvalue_(siM3_/_NC)` < 0.05,] %>% 
   write.csv(.,file = "JH_siM3.csv")
+
 kegg_san <- fread("kegg_dou_dif.csv") %>% .[,Description:= paste0(Description, "(",ID,")")] %>%
   .[,2:17] %>% melt(.,id.vars = "Description",measure.vars = .SD,value.name = "gene_id") %>% 
   .[,c(1,3)] %>% na.omit() %>% .[,gene_id := as.character(gene_id)]
@@ -77,6 +75,7 @@ kegg_san <- deg[,c(5,19)] %>% .[kegg_san,on = .(gene_id = gene_id)]
 kegg_san[,value := 1]
 kegg_san <- setorder(kegg_san,Description) %>% .[]
 kegg_san %>% uniqueN(.,by = "gene_id")
+
 library(ggalluvial)
 ggplot(kegg_san,aes(axis1=gene_id,
                   axis2=Description,fill = regulation))+
@@ -89,17 +88,14 @@ ggplot(kegg_san,aes(axis1=gene_id,
         axis.ticks = element_blank(),
         axis.text = element_blank())
   
-########设计基因的四象限图，用的要是转录组和m6A peak的结果。
+########four-quadrant plot###
 
 jh_silk <- fread("/Users/Julian/Documents/科研/转录组相关/JH_20E_treat.txt") %>% .[,c(1,14,23)]
 
 colnames(jh_silk) <- colnames(jh_silk) %>% gsub(" ","",.)
 jh_silk[, GeneID := as.character(GeneID)]
-names(depeak)
-
 
 vol_dt <- jh_silk %>% depeak[,c(8,9,13)][.,on = .(geneID = GeneID)] %>% na.omit()
-
 
 vol_dt <- vol_dt %>% .[`Qvalue(JH_psg/control_psg)` < 0.05,group := "sign"] %>% 
   .[`Qvalue(JH_psg/control_psg)` >= 0.05,group := "nosign"] %>% unique(., by = "geneID")
@@ -113,7 +109,6 @@ ggplot(vol_dt,aes(x = `DiffModLog2FC`, y = `log2(JH_psg/control_psg)`))+
   geom_vline(xintercept = c(-1,1),linetype = "dotted",size = .7)+
   scale_color_manual(values = c("grey","steelblue"))
  depeak %>% names()
-
 
 ven_degup <- jh_silk[`Qvalue(JH_psg/control_psg)` < 0.05 & `log2(JH_psg/control_psg)` > 1,GeneID]
 
@@ -133,11 +128,7 @@ jh_silk2 <- jh_silk[`Qvalue(JH_psg/control_psg)` < 0.05,]
 silk_gene[id %in% depeak$geneID,] %>% .[id %in% jh_silk2$GeneID,]
 
 
-#############关于共同差异基因的GO富集分析#####
-
-
-
-#########关于m6A修饰的基因的peak数量问题。#############
+#########number of m6A peaks on m6A-containing genes#############
 
 C1 <- fread("C1_IPVSC1_input_peak.csv") %>%
   .[pvalue <= 0.01 & log2FoldChange > 2,] %>%
@@ -159,7 +150,8 @@ fread("m6a_num.csv") %>% ggbarplot(.,x = "num",y = "Freq",
   scale_fill_manual(values = c("grey","steelblue"))+
   xlab("")+ylab("")+
   theme(legend.position = "none")
-fread("m6a_num.csv") %>% ggbarplot(.,x = "group", y = "Freq",
+fread("m6a_num.csv") %>% 
+ggbarplot(.,x = "group", y = "Freq",
                                    position = position_fill(),
                                    fill = "num",rotate = TRUE,
                                    width = .7)+
@@ -175,8 +167,8 @@ df <- data.frame(
   x = rnorm(n), y = runif(n)
 )
 
-circos.par("track.height" = 0.1)#确定总体布局的高度
-circos.initialize(df$sectors, x = df$x)#确定数据映射关系。
+circos.par("track.height" = 0.1) #确定总体布局的高度
+circos.initialize(df$sectors, x = df$x) #确定数据映射关系。
 
 circos.track(df$sectors, y = df$y,
              panel.fun = function(x, y) {
@@ -273,7 +265,7 @@ AnnotationDbi::select(orgdb,
       keytype = "ENTREZID") %>%setDT() %>%  .[REFSEQ %like% "M",] %>% unique(.,by = "ENTREZID") %>% 
   write.csv(.,file = "gene_list.csv",row.names=FALSE,col.names= FALSE)
 
-##########处理qPCR数据#######
+##########qPCR#######
 
 fread("qpcr_jh.csv") %>% t() %>% as.data.frame() %>% 
   setnames(.,c("seroin","Loc","BmSPI4","BmSPI5")) %>% .[-1,] %>%row.names()
@@ -294,8 +286,8 @@ ggbarplot(qpcr,x = "group",y = "value",facet.by = "gene",add = "mean_sd",fill = 
 compar <- list(c("Con","2h"),c("Con","4h"),c("Con","6h"),c("Con","8h"),c("Con","12h"),c("Con","24h"))
 
 
-#################蚕茧重量以及厚度。绘制箱线图代码，加上点分布##############
-setwd("/Users/Julian/Desktop/r工作台")
+#################thickness and weight of silkworm cocoon##############
+setwd("")
 library(ggplot2)
 library(ggpubr)
 library(data.table)
@@ -323,8 +315,8 @@ ggboxplot(cocoon_thick, x = "group",y = "thickness",fill = "treat",order = c("Co
   theme(legend.position = "none")
 theme_bw()
 
-silk_gene
-##############m6A containing gene和RNAi数据联动。###########
+
+##############cojoint analysis of m6A-seq and RNAi rna-seq data###########
 fread("/Users/Julian/Documents/Scientific research/转录组相关/m3_rnai.csv") %>% .[Gene_ID %in% silk_gene$id,] %>% 
   .[`Qvalue_(siM3_/_NC)` < 0.05,] %>% silk_gene[,c(1,3)][., on = .(id =Gene_ID)] %>% .[,]
   melt(.,id.vars = "name", measure.vars = .SD, variable.name = "group",value.name= "FPKM") %>%
@@ -338,13 +330,11 @@ library(data.table)
 fread("/Users/Julian/Documents/Scientific research/转录组相关/m3_rnai.csv") %>% 
   .[`Qvalue_(siM3_/_NC)` < 0.05 ] %>% .[Gene_ID %in% m6A_containing_genes$geneID,]
 
-
 m6A_containing_genes <- fread('C1_IPVSC1_input_peak.csv') %>% .[padj < 0.01 & log2FoldChange > 1] %>% unique(.,by = "geneID")
 
 silk_gene %>% .[id %in% m6A_containing_genes$geneID,]
 
 m6a_containing_rnai <- fread("m3_rnai.csv") %>% .[Gene_ID %in% m6A_containing_genes$geneID & `Qvalue_(siM3_/_NC)` < 0.05,]
-
 
 enrichGO(gene = m6a_containing_rnai$Gene_ID,
          OrgDb = orgdb,
@@ -352,11 +342,10 @@ enrichGO(gene = m6a_containing_rnai$Gene_ID,
          ont = "ALL",
          pvalueCutoff = 1,
          qvalueCutoff = 1) %>% 
-
   dotplot(showCategory = 30)
 
 
-###########蚕茧重量和厚度数据#############
+###########thickness and weight of cocoon#############
 cocoon_thick[treat == "JH",thickness] %>% mean() / cocoon_thick[treat == "Con",thickness] %>% mean()
 
 cocon[treat == "JH",weight] %>% mean() / cocon[treat == "Con",weight] %>% mean()
