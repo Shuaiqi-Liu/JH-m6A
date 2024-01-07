@@ -1,4 +1,3 @@
-setwd("")
 library(data.table)
 library(ggplot2)
 library(ggpubr)
@@ -90,7 +89,7 @@ ggplot(kegg_san,aes(axis1=gene_id,
   
 ########four-quadrant plot###
 
-jh_silk <- fread("/Users/Julian/Documents/科研/转录组相关/JH_20E_treat.txt") %>% .[,c(1,14,23)]
+jh_silk <- fread("JH_20E_treat.txt") %>% .[,c(1,14,23)]
 
 colnames(jh_silk) <- colnames(jh_silk) %>% gsub(" ","",.)
 jh_silk[, GeneID := as.character(GeneID)]
@@ -122,7 +121,7 @@ ggvenn(ven,c(1,2,3,4),text_size = 2.5)+
   scale_fill_igv()
 
 
-####################差异peak峰基因筛选##################
+####################Dif peak gene filtration##################
 
 jh_silk2 <- jh_silk[`Qvalue(JH_psg/control_psg)` < 0.05,]
 silk_gene[id %in% depeak$geneID,] %>% .[id %in% jh_silk2$GeneID,]
@@ -159,7 +158,7 @@ ggbarplot(.,x = "group", y = "Freq",
   theme_bw()+
   xlab("")+ylab("")
 
-#############基因组圈图###########
+#############CIRCOS###########
 library(circlize)
 n <- 1000
 df <- data.frame(
@@ -167,8 +166,8 @@ df <- data.frame(
   x = rnorm(n), y = runif(n)
 )
 
-circos.par("track.height" = 0.1) #确定总体布局的高度
-circos.initialize(df$sectors, x = df$x) #确定数据映射关系。
+circos.par("track.height" = 0.1)
+circos.initialize(df$sectors, x = df$x)
 
 circos.track(df$sectors, y = df$y,
              panel.fun = function(x, y) {
@@ -235,7 +234,7 @@ ggplot(df,aes(x = V1))+
   geom_point(aes(x = `.`,y = v2,fill = `.`))+
   scale_fill_gradient2(low="blue", high="red", mid="white")
 
-#########点突变后_qpcr结果#######
+#########Mutaion_qpcr result#######
 library(ggsignif)
 compar <- list(c("OE-Wt","JH+OE-Wt"))
 fread("rip_qPCR_wt.csv") %>% 
@@ -317,7 +316,7 @@ theme_bw()
 
 
 ##############cojoint analysis of m6A-seq and RNAi rna-seq data###########
-fread("/Users/Julian/Documents/Scientific research/转录组相关/m3_rnai.csv") %>% .[Gene_ID %in% silk_gene$id,] %>% 
+fread("转录组相关/m3_rnai.csv") %>% .[Gene_ID %in% silk_gene$id,] %>% 
   .[`Qvalue_(siM3_/_NC)` < 0.05,] %>% silk_gene[,c(1,3)][., on = .(id =Gene_ID)] %>% .[,]
   melt(.,id.vars = "name", measure.vars = .SD, variable.name = "group",value.name= "FPKM") %>%
   .[group %like% "NC",treat := "Con"] %>% 
@@ -327,7 +326,7 @@ fread("/Users/Julian/Documents/Scientific research/转录组相关/m3_rnai.csv")
   theme_bw()
 
 library(data.table)
-fread("/Users/Julian/Documents/Scientific research/转录组相关/m3_rnai.csv") %>% 
+fread("转录组相关/m3_rnai.csv") %>% 
   .[`Qvalue_(siM3_/_NC)` < 0.05 ] %>% .[Gene_ID %in% m6A_containing_genes$geneID,]
 
 m6A_containing_genes <- fread('C1_IPVSC1_input_peak.csv') %>% .[padj < 0.01 & log2FoldChange > 1] %>% unique(.,by = "geneID")
