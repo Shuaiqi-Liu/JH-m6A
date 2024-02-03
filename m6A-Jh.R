@@ -255,8 +255,8 @@ AnnotationDbi::select(orgdb,
                       keys = seq_id,
                       columns = c("ENTREZID","REFSEQ"),
                       keytype = "ENTREZID") %>% 
-  setDT() %>% .[REFSEQ %like% "P",2] %>% write.table(.,file = "gene.txt",quote = FALSE,sep ="\n",row.names = FALSE,col.names = FALSE)
-
+                      setDT() %>% .[REFSEQ %like% "P",2] %>%
+                      write.table(.,file = "gene.txt",quote = FALSE,sep ="\n",row.names = FALSE,col.names = FALSE)
 
 AnnotationDbi::select(orgdb,
       keys = seq_id,
@@ -268,7 +268,6 @@ AnnotationDbi::select(orgdb,
 
 fread("qpcr_jh.csv") %>% t() %>% as.data.frame() %>% 
   setnames(.,c("seroin","Loc","BmSPI4","BmSPI5")) %>% .[-1,] %>%row.names()
-
 
 qpcr <- fread("qpcr_jh_2.csv") %>% t() %>% as.data.frame() %>% setDT() %>% 
   setnames(.,c("seroin1","LOC101736771","BmSPI4","BmSPI5","Ldb","sercin2","YTHDF3","METTL3")) %>% .[-1,] %>%
@@ -286,25 +285,26 @@ compar <- list(c("Con","2h"),c("Con","4h"),c("Con","6h"),c("Con","8h"),c("Con","
 
 
 #################thickness and weight of silkworm cocoon##############
-setwd("")
+
 library(ggplot2)
 library(ggpubr)
 library(data.table)
 compar = list(c("male_Con","male_JH"),c("female_Con","female_JH"))
 cocon <- fread("cocon_weight.csv") 
 cocon %<>% .[,treat_2 := paste0(cocon$gender,"_",cocon$treat)] %>% .[]
-cocon
+
 ggboxplot(cocon, x = "treat_2",y = "weight",fill = "treat",order = c("male_Con","male_JH","female_Con","female_JH"))+
   geom_point(position = "dodge",size = 1, alpha = .8,color = "black")+
   expand_limits(y = 0)+
   theme_bw()+
   stat_compare_means(comparisons = compar,method = "t.test")+
   xlab("")+ylab("Cocon weight")+
-  theme(legend.position = "none")
-theme_bw()
+  theme(legend.position = "none")+
+  theme_bw()
+
+
 compar_2 = list(c("Con_male","JH_male"),c("Con_female","JH_female"))
 cocoon_thick <- fread("cocoon_thickness.csv")
-cocoon_thick
 ggboxplot(cocoon_thick, x = "group",y = "thickness",fill = "treat",order = c("Con_male","JH_male","Con_female","JH_female"))+
   geom_point(position = "dodge",size = 1, alpha = .8,color = "black")+
   expand_limits(y = 0)+
@@ -316,7 +316,7 @@ theme_bw()
 
 
 ##############cojoint analysis of m6A-seq and RNAi rna-seq data###########
-fread("转录组相关/m3_rnai.csv") %>% .[Gene_ID %in% silk_gene$id,] %>% 
+fread("m3_rnai.csv") %>% .[Gene_ID %in% silk_gene$id,] %>% 
   .[`Qvalue_(siM3_/_NC)` < 0.05,] %>% silk_gene[,c(1,3)][., on = .(id =Gene_ID)] %>% .[,]
   melt(.,id.vars = "name", measure.vars = .SD, variable.name = "group",value.name= "FPKM") %>%
   .[group %like% "NC",treat := "Con"] %>% 
@@ -326,7 +326,7 @@ fread("转录组相关/m3_rnai.csv") %>% .[Gene_ID %in% silk_gene$id,] %>%
   theme_bw()
 
 library(data.table)
-fread("转录组相关/m3_rnai.csv") %>% 
+fread("") %>% 
   .[`Qvalue_(siM3_/_NC)` < 0.05 ] %>% .[Gene_ID %in% m6A_containing_genes$geneID,]
 
 m6A_containing_genes <- fread('C1_IPVSC1_input_peak.csv') %>% .[padj < 0.01 & log2FoldChange > 1] %>% unique(.,by = "geneID")
